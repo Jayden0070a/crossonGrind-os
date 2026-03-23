@@ -512,7 +512,7 @@ nav{flex-shrink:0;background:rgba(0,0,0,.98);border-top:1px solid var(--border);
         <button class="prib" id="gtype-milestone" onclick="selGoalType('milestone')" style="font-size:11px">🏆 Milestones</button>
       </div>
     </div>
-    <div class="fg"><label class="fl">Target Amount (R) <span style="color:var(--muted);font-size:9px">— for money/target goals</span></label><input class="fi" id="bg-target" type="number" placeholder="50000000"></div>
+    <div class="fg" id="bg-target-group"><label class="fl">Target Amount (R) <span style="color:var(--muted);font-size:9px">— for money/target goals</span></label><input class="fi" id="bg-target" type="number" placeholder="50000000"></div>
     <div class="fg" id="bg-milestones-group" style="display:none"><label class="fl">Milestones (one per line)</label><textarea class="fta" id="bg-milestones" placeholder="Buy the land&#10;Sign the contract&#10;Get the keys"></textarea></div>
     <div class="fg"><label class="fl">Deadline</label><input class="fi" id="bg-deadline" type="date"></div>
     <div class="fg"><label class="fl">Why it matters</label><textarea class="fta" id="bg-why" placeholder="What does achieving this mean to you?"></textarea></div>
@@ -632,7 +632,7 @@ function loadState() {
   // Ensure default big goals exist
   if (!S.bigGoals || S.bigGoals.length === 0) {
     S.bigGoals = [
-      { id: 'bg1', title: 'R50 Million Profit', type: 'money', target: 50000000, deadline: '2025-12-31', why: 'Build generational wealth and prove it can be done', current: 0 },
+      { id: 'bg1', title: 'R50M Profit — 2025', type: 'money', target: 50000000, deadline: '2025-12-31', why: 'Build generational wealth and prove it can be done' },
       { id: 'bg2', title: 'Buy a Mini Mansion', type: 'milestone', deadline: '2026-12-31', why: 'The house I deserve', milestones: [{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}] },
       { id: 'bg3', title: '250K TikTok Followers', type: 'count', target: 250000, current: 100000, unit: 'followers', icon: '🎵', deadline: '' },
       { id: 'bg4', title: '100K Instagram Followers', type: 'count', target: 100000, current: 40000, unit: 'followers', icon: '📸', deadline: '' },
@@ -647,7 +647,8 @@ function loadState() {
   if(!S.bigGoals) S.bigGoals = [];
   var ids = S.bigGoals.map(function(g){return g.id;});
 
-  if(ids.indexOf('bg1')===-1) S.bigGoals.unshift({ id:'bg1', title:'R50 Million Profit', type:'money', target:50000000, deadline:'2025-12-31', why:'Build generational wealth and prove it can be done', current:0 });
+  if(ids.indexOf('bg1')===-1) S.bigGoals.unshift({ id:'bg1', title:'R50M Profit — 2025', type:'money', target:50000000, deadline:'2025-12-31', why:'Build generational wealth and prove it can be done' });
+  else { var g1=S.bigGoals.find(function(g){return g.id==='bg1';}); if(g1){ g1.type='money'; if(!g1.target) g1.target=50000000; } }
   if(ids.indexOf('bg2')===-1) S.bigGoals.splice(1,0,{ id:'bg2', title:'Buy a Mini Mansion', type:'milestone', deadline:'2026-12-31', why:'The house I deserve', milestones:[{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}] });
   if(ids.indexOf('bg3')===-1) S.bigGoals.push({ id:'bg3', title:'250K TikTok Followers', type:'count', target:250000, current:100000, unit:'followers', icon:'🎵', deadline:'' });
   if(ids.indexOf('bg4')===-1) S.bigGoals.push({ id:'bg4', title:'100K Instagram Followers', type:'count', target:100000, current:40000, unit:'followers', icon:'📸', deadline:'' });
@@ -921,22 +922,45 @@ function selGoalType(t){
   });
   var mg = document.getElementById('bg-milestones-group');
   if(mg) mg.style.display = t==='milestone' ? 'block' : 'none';
+  var tg = document.getElementById('bg-target-group');
+  if(tg) tg.style.display = t==='milestone' ? 'none' : 'block';
 }
 function addBigGoal(){
-  var title=document.getElementById('bg-title').value.trim();
-  if(!title){toast('Add a title!','var(--neon3)');return;}
-  var target=parseFloat(document.getElementById('bg-target').value)||0;
-  var deadline=document.getElementById('bg-deadline').value;
-  var why=document.getElementById('bg-why').value.trim();
-  var obj={id:uid(),title:title,type:_goalType,target:target,deadline:deadline,why:why};
-  if(_goalType==='milestone'){
-    var raw=document.getElementById('bg-milestones').value.trim();
-    obj.milestones=raw?raw.split('\n').filter(function(s){return s.trim();}).map(function(s){return {text:s.trim(),done:false};}):[];
+  var titleEl = document.getElementById('bg-title');
+  var targetEl = document.getElementById('bg-target');
+  var deadlineEl = document.getElementById('bg-deadline');
+  var whyEl = document.getElementById('bg-why');
+  var milestonesEl = document.getElementById('bg-milestones');
+
+  if(!titleEl){ toast('Form error','var(--neon3)'); return; }
+  var title = titleEl.value.trim();
+  if(!title){ toast('Add a goal title!','var(--neon3)'); return; }
+
+  var target = targetEl ? (parseFloat(targetEl.value)||0) : 0;
+  var deadline = deadlineEl ? deadlineEl.value : '';
+  var why = whyEl ? whyEl.value.trim() : '';
+  var type = _goalType || 'money';
+
+  var obj = { id: uid(), title: title, type: type, target: target, deadline: deadline, why: why };
+
+  if(type === 'milestone'){
+    var raw = milestonesEl ? milestonesEl.value.trim() : '';
+    obj.milestones = raw ? raw.split('\n').filter(function(s){ return s.trim(); }).map(function(s){ return { text: s.trim(), done: false }; }) : [];
   }
+
+  if(!S.bigGoals) S.bigGoals = [];
   S.bigGoals.push(obj);
-  saveState();renderGoals();closeOverlay('ov-biggoal');
-  ['bg-title','bg-target','bg-deadline','bg-why','bg-milestones'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  _goalType='money'; selGoalType('money');
+  saveState();
+  renderGoals();
+  closeOverlay('ov-biggoal');
+
+  if(titleEl) titleEl.value = '';
+  if(targetEl) targetEl.value = '';
+  if(deadlineEl) deadlineEl.value = '';
+  if(whyEl) whyEl.value = '';
+  if(milestonesEl) milestonesEl.value = '';
+  _goalType = 'money';
+  selGoalType('money');
   toast('Goal locked in 🎯');
 }
 function deleteBigGoal(id){S.bigGoals=S.bigGoals.filter(g=>g.id!==id);saveState();renderGoals();}
@@ -1030,7 +1054,8 @@ function renderProfitModal(){
   }).join('');
   S._profitMonth=`${yr}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const gSel=document.getElementById('profit-goal-sel');
-  gSel.innerHTML=S.bigGoals.map(g=>`<option value="${g.id}">${g.title}</option>`).join('');
+  var moneyGoals = S.bigGoals.filter(function(g){ return g.type==='money'; });
+  gSel.innerHTML=moneyGoals.map(function(g){ return '<option value="'+g.id+'">'+g.title+'</option>'; }).join('');
   if(S._profitGoalId) gSel.value=S._profitGoalId;
 }
 function selProfitMonth(btn,key){ document.querySelectorAll('.pms-btn').forEach(b=>b.classList.remove('sel')); btn.classList.add('sel'); S._profitMonth=key; }
