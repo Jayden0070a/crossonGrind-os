@@ -592,7 +592,16 @@ nav{flex-shrink:0;background:rgba(0,0,0,.98);border-top:1px solid var(--border);
 // ============================================================
 // STATE & PERSISTENCE
 // ============================================================
-const KEY = 'grindos_v4';
+const KEY = 'grindos_v6';
+function DEFAULT_STATE(){
+  return {
+    tasks:[],ideas:[],weekGoals:[],bigGoals:[],notes:[],journal:{},audioMemos:{},monthlyProfits:{},lockInStreak:{},
+    habits:{daily:[{id:'water',icon:'💧',name:'Drink 3L Water',sub:'Stay hydrated',done:false},{id:'gym',icon:'🏋️',name:'Hit the Gym',sub:'No excuses',done:false},{id:'lockin',icon:'🔒',name:'Lock In 1hr',sub:'Deep work session',done:false}],streaks:{}},
+    brands:[{id:'lbc',name:'LovedByChrist',color:'#ff3cac'},{id:'coc',name:'CrossonCourse',color:'#00ff88'},{id:'earnd',name:'EarnD',color:'#00cfff'},{id:'personal',name:'Personal',color:'#ffd700'}],
+    sections:[{id:'tasks',label:'Tasks',on:true},{id:'ideas',label:'Ideas',on:true},{id:'goals',label:'Goals',on:true},{id:'journal',label:'Journal',on:true},{id:'notes',label:'Notes',on:true}],
+    selTaskBrand:'personal',selTaskPri:'mid',selIdeaBrand:'lbc',selWGBrand:'personal',selNoteBrand:'personal'
+  };
+}
 let S = {
   tasks: [],
   ideas: [],
@@ -628,39 +637,64 @@ let S = {
 };
 
 function loadState() {
-  try { const d = localStorage.getItem(KEY); if(d) S = JSON.parse(d); } catch(e){}
-  // Ensure default big goals exist
-  if (!S.bigGoals || S.bigGoals.length === 0) {
-    S.bigGoals = [
-      { id: 'bg1', title: 'R50M Profit — 2025', type: 'money', target: 50000000, deadline: '2025-12-31', why: 'Build generational wealth and prove it can be done' },
-      { id: 'bg2', title: 'Buy a Mini Mansion', type: 'milestone', deadline: '2026-12-31', why: 'The house I deserve', milestones: [{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}] },
-      { id: 'bg3', title: '250K TikTok Followers', type: 'count', target: 250000, current: 100000, unit: 'followers', icon: '🎵', deadline: '' },
-      { id: 'bg4', title: '100K Instagram Followers', type: 'count', target: 100000, current: 40000, unit: 'followers', icon: '📸', deadline: '' },
-      { id: 'bg5', title: '25K YouTube Subscribers', type: 'count', target: 25000, current: 0, unit: 'subscribers', icon: '▶️', deadline: '' }
-    ];
-    S.monthlyProfits = {};
-  }
-  if (!S.monthlyProfits) S.monthlyProfits = {};
-  if (!S.audioMemos) S.audioMemos = {};
-  if (!S.lockInStreak) { S.lockInStreak = {}; }
-  // Always ensure core goals exist
+  try {
+    var d = localStorage.getItem(KEY);
+    if(d) S = JSON.parse(d);
+  } catch(e){ S = JSON.parse(JSON.stringify(DEFAULT_STATE())); }
+
+  if(!S.tasks) S.tasks = [];
+  if(!S.ideas) S.ideas = [];
+  if(!S.weekGoals) S.weekGoals = [];
   if(!S.bigGoals) S.bigGoals = [];
-  var ids = S.bigGoals.map(function(g){return g.id;});
+  if(!S.notes) S.notes = [];
+  if(!S.journal) S.journal = {};
+  if(!S.audioMemos) S.audioMemos = {};
+  if(!S.monthlyProfits) S.monthlyProfits = {};
+  if(!S.lockInStreak) S.lockInStreak = {};
+  if(!S.habits) S.habits = { daily:[
+    {id:'water',icon:'💧',name:'Drink 3L Water',sub:'Stay hydrated',done:false},
+    {id:'gym',icon:'🏋️',name:'Hit the Gym',sub:'No excuses',done:false},
+    {id:'lockin',icon:'🔒',name:'Lock In 1hr',sub:'Deep work session',done:false}
+  ], streaks:{} };
+  if(!S.brands) S.brands = [
+    {id:'lbc',name:'LovedByChrist',color:'#ff3cac'},
+    {id:'coc',name:'CrossonCourse',color:'#00ff88'},
+    {id:'earnd',name:'EarnD',color:'#00cfff'},
+    {id:'personal',name:'Personal',color:'#ffd700'}
+  ];
+  if(!S.sections) S.sections = [
+    {id:'tasks',label:'Tasks',on:true},
+    {id:'ideas',label:'Ideas',on:true},
+    {id:'goals',label:'Goals',on:true},
+    {id:'journal',label:'Journal',on:true},
+    {id:'notes',label:'Notes',on:true}
+  ];
+  if(!S.selTaskBrand) S.selTaskBrand = 'personal';
+  if(!S.selTaskPri) S.selTaskPri = 'mid';
+  if(!S.selIdeaBrand) S.selIdeaBrand = 'lbc';
+  if(!S.selWGBrand) S.selWGBrand = 'personal';
+  if(!S.selNoteBrand) S.selNoteBrand = 'personal';
 
-  if(ids.indexOf('bg1')===-1) S.bigGoals.unshift({ id:'bg1', title:'R50M Profit — 2025', type:'money', target:50000000, deadline:'2025-12-31', why:'Build generational wealth and prove it can be done' });
-  else { var g1=S.bigGoals.find(function(g){return g.id==='bg1';}); if(g1){ g1.type='money'; if(!g1.target) g1.target=50000000; } }
-  if(ids.indexOf('bg2')===-1) S.bigGoals.splice(1,0,{ id:'bg2', title:'Buy a Mini Mansion', type:'milestone', deadline:'2026-12-31', why:'The house I deserve', milestones:[{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}] });
-  if(ids.indexOf('bg3')===-1) S.bigGoals.push({ id:'bg3', title:'250K TikTok Followers', type:'count', target:250000, current:100000, unit:'followers', icon:'🎵', deadline:'' });
-  if(ids.indexOf('bg4')===-1) S.bigGoals.push({ id:'bg4', title:'100K Instagram Followers', type:'count', target:100000, current:40000, unit:'followers', icon:'📸', deadline:'' });
-  if(ids.indexOf('bg5')===-1) S.bigGoals.push({ id:'bg5', title:'25K YouTube Subscribers', type:'count', target:25000, current:0, unit:'subscribers', icon:'▶️', deadline:'' });
-
-  // Migrate any goal missing a type
+  // Always ensure all 5 core goals exist by id
+  var coreGoals = [
+    {id:'bg1', title:'R50M Profit — 2025', type:'money', target:50000000, deadline:'2025-12-31', why:'Build generational wealth and prove it can be done'},
+    {id:'bg2', title:'Buy a Mini Mansion', type:'milestone', deadline:'2026-12-31', why:'The house I deserve', milestones:[{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}]},
+    {id:'bg3', title:'250K TikTok Followers', type:'count', target:250000, current:100000, unit:'followers', icon:'🎵', deadline:''},
+    {id:'bg4', title:'100K Instagram Followers', type:'count', target:100000, current:40000, unit:'followers', icon:'📸', deadline:''},
+    {id:'bg5', title:'25K YouTube Subscribers', type:'count', target:25000, current:0, unit:'subscribers', icon:'▶️', deadline:''}
+  ];
+  var existingIds = S.bigGoals.map(function(g){return g.id;});
+  coreGoals.forEach(function(cg, i){
+    if(existingIds.indexOf(cg.id)===-1){
+      S.bigGoals.splice(i, 0, cg);
+      existingIds.splice(i, 0, cg.id);
+    }
+  });
+  // Fix any goal missing type
   S.bigGoals.forEach(function(g){
     if(!g.type){
-      if(g.id==='bg2' || (g.title && g.title.toLowerCase().indexOf('mansion')>-1)){
-        g.type='milestone';
-        if(!g.milestones) g.milestones=[{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}];
-      } else { g.type='money'; }
+      if(g.id==='bg2'||(g.title&&g.title.toLowerCase().indexOf('mansion')>-1)){g.type='milestone';if(!g.milestones)g.milestones=[{text:'Find the property',done:false},{text:'Secure financing',done:false},{text:'Sign the deal',done:false},{text:'Move in',done:false}];}
+      else{g.type='money';}
     }
   });
 }
